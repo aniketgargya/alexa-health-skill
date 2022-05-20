@@ -21,6 +21,47 @@ const HelloWorldIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'HelloWorldIntent';
     },
     handle(handlerInput) {
+        const reminderApiClient = handlerInput.serviceClientFactory.getReminderManagementServiceClient();
+        const apiAccessToken = handlerInput.requestEnvelope.context.System.apiAccessToken;
+
+        if (!apiAccessToken) {
+            return handlerInput.responseBuilder
+                .speak('Please go to the Alexa mobile app to grant reminders permissions.')
+                .withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+                .getResponse()
+        }
+
+        const reminderRequest = {
+            requestTime: currentDateTime.format('YYYY-MM-DDTHH:mm:ss'),
+            trigger: {
+              type: 'SCHEDULED_ABSOLUTE',
+              scheduledTime: currentDateTime.set({
+                  hour: '13',
+                  minute: '00',
+                  second: '00'
+              }).format('YYYY-MM-DDTHH:mm:ss'),
+              timeZoneId: 'America/Los_Angeles',
+              recurrence: {
+                // startDateTime: '',
+                // endDateTime: ''
+                recurrenceRules: 'FREQ=DAILY'
+              }
+            },
+            alertInfo: {
+              spokenInfo: {
+                content: [{
+                  locale: 'en-US',
+                  text: 'Pop yo pills.',
+                }],
+              },
+            },
+            pushNotification: {
+              status: 'ENABLED',
+            }
+          };
+
+        await reminderApiClient.createReminder(reminderRequest);
+
         const speakOutput = 'Hello World!';
         return handlerInput.responseBuilder
             .speak(speakOutput)
